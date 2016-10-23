@@ -109,4 +109,8 @@ Backup*/
 UpgradeLog*.XML
 
 
+
 .DS_Store
+
+# Xamarin Studio user preferences
+*.userprefs
