@@ -11,25 +11,29 @@ using System.Threading.Tasks;
 using Microsoft.WindowsAzure.MobileServices.SQLiteStore;
 using System.Diagnostics;
 
+// This attribute registers this type with the Xamarin.Forms DependencyService
 [assembly: Dependency(typeof(AzureService))]
 namespace DevDaysSpeakers.Services
 {
     public class AzureService
     {
         public MobileServiceClient Client { get; set; } = null;
-        IMobileServiceSyncTable<Speaker> table;
+		IMobileServiceSyncTable<Speaker> _table;
 
+		/// <summary>
+		/// Initialize our local storage and hook up to our remote.
+		/// </summary>
         public async Task Initialize()
         {
             if (Client?.SyncContext?.IsInitialized ?? false)
                 return;
 
-            var appUrl = "https://OUR-APP-NAME-HERE.azurewebsites.net";
+            var appUrl = "https://danjtest-speakers.azurewebsites.net";
 
             //Create our client
             Client = new MobileServiceClient(appUrl);
 
-            //InitialzeDatabase for path
+            //InitializeDatabase for path
             var path = "syncstore.db";
             path = Path.Combine(MobileServiceClient.DefaultDatabasePath, path);
 
@@ -44,13 +48,16 @@ namespace DevDaysSpeakers.Services
             await Client.SyncContext.InitializeAsync(store, new MobileServiceSyncHandler());
 
             //Get our sync table that will call out to azure
-            table = Client.GetSyncTable<Speaker>();
+            _table = Client.GetSyncTable<Speaker>();
         }
 
 
         public async Task<IEnumerable<Speaker>> GetSpeakers()
         {
-            return new List<Speaker>();
+			await Initialize();
+			await SyncSpeakers();
+
+			return await _table.OrderBy(s => s.Name).ToEnumerableAsync();
         }
 
       
@@ -58,6 +65,8 @@ namespace DevDaysSpeakers.Services
         {
             try
             {
+				await Client.SyncContext.PushAsync(); // sync local changes up to Azure
+				await _table.PullAsync("allSpeakers", _table.CreateQuery()); // pull down any new changes from the cloud
             }
             catch (Exception ex)
             {

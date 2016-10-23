@@ -15,6 +15,7 @@ namespace DevDaysSpeakers
             // The root page of your application
             var content = new SpeakersPage();
 
+			// Embedding SpeakersPage in a NavigationPage just sets it up to be navigable
             MainPage = new NavigationPage(content);
         }
 
